@@ -22,6 +22,7 @@
 import os
 import sys
 import gzip
+import bz2
 import logging
 
 nucleotide_bases = {'a', 'c', 'g', 't'}
@@ -182,6 +183,8 @@ def readFasta(fastaFile, trimHeader=True):
     try:
         if fastaFile.endswith('.gz'):
             openFile = gzip.open
+        elif fastaFile.endswith('.bz2'):
+            openFile = bz2.open
         else:
             openFile = open
 

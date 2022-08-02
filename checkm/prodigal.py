@@ -61,13 +61,13 @@ class ProdigalRunner():
         for seqId, seq in seqs.items():
             totalBases += len(seq)
 
-        # decompress gzip input files
-        tmp_dir = None
+        # determine how to process input files
         if prodigal_input.endswith('.gz'):
-            tmp_dir = tempfile.mkdtemp()
-            prodigal_input = os.path.join(
-                tmp_dir, os.path.basename(prodigal_input[0:-3]))
-            writeFasta(seqs, prodigal_input)
+            cat_f = 'zcat'
+        elif prodigal_input.endswith('.bz2'):
+            cat_f = 'bzcat'
+        else:
+            cat_f = 'cat'
 
         # call ORFs with different translation tables and select the one with the highest coding density
         tableCodingDensity = {}
@@ -83,18 +83,20 @@ class ProdigalRunner():
                 procedureStr = 'single'  # estimate parameters from data
 
             if bNucORFs:
-                cmd = ('prodigal -p %s -q -m -f gff -g %d -a %s -d %s -i %s > %s 2> /dev/null' % (procedureStr,
-                                                                                                  translationTable,
-                                                                                                  aaGeneFile,
-                                                                                                  ntGeneFile,
-                                                                                                  prodigal_input,
-                                                                                                  gffFile))
+                cmd = ('%s %s | prodigal -p %s -q -m -f gff -g %d -a %s -d %s > %s' % (cat_f, 
+                                                                                       prodigal_input,
+                                                                                       procedureStr,
+                                                                                       translationTable,
+                                                                                       aaGeneFile,
+                                                                                       ntGeneFile,
+                                                                                       gffFile))
             else:
-                cmd = ('prodigal -p %s -q -m -f gff -g %d -a %s -i %s > %s 2> /dev/null' % (procedureStr,
-                                                                                            translationTable,
-                                                                                            aaGeneFile,
-                                                                                            prodigal_input,
-                                                                                            gffFile))
+                cmd = ('%s %s | prodigal -p %s -q -m -f gff -g %d -a %s > %s' % (cat_f,
+                                                                                 prodigal_input,
+                                                                                 procedureStr,
+                                                                                 translationTable,
+                                                                                 aaGeneFile,
+                                                                                 gffFile))
 
             os.system(cmd)
 
@@ -136,9 +138,6 @@ class ProdigalRunner():
             os.remove(self.gffFile + '.' + str(translationTable))
             if bNucORFs:
                 os.remove(self.ntGeneFile + '.' + str(translationTable))
-
-        if tmp_dir:
-            shutil.rmtree(tmp_dir)
 
         return bestTranslationTable
 
